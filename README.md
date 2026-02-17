@@ -1,33 +1,24 @@
-# PM-SS (PM Self Service) – SPA (React + Vite) + Node (Express) + Supabase
+# PM-SS MobilePro v1.3 (Full Secure)
 
-## Default demo user
-- Company: **SCP**
-- Username: **hradmin**
-- Password: **Pmss@1234**
+This release fixes Render deploy crash and enables baseline security:
+- JWT auth middleware (`authRequired`)
+- Role-based access control for HR endpoints
+- Helmet security headers
+- Rate limiting
+- CORS allowlist via `CORS_ORIGIN`
 
-## Local run
-```bash
-npm install
-npm run dev
-```
-- Frontend: http://localhost:5173
-- Backend: http://localhost:10000
+## Deploy (Render)
+1. Connect GitHub repo
+2. Build Command: `npm install && npm run build`
+3. Start Command: `npm start`
+4. Add Environment Variables:
+   - `DATABASE_URL` (Supabase **Session Pooler** URL + `?sslmode=require`)
+   - `JWT_SECRET` (random long string)
+   - `CORS_ORIGIN` = your site URL (optional but recommended)
 
-## Render (Single Web Service)
-**Build Command**
-```bash
-npm install && npm run build
-```
-
-**Start Command**
-```bash
-npm start
-```
-
-**Environment Variables (Render)**
-- `DATABASE_URL` : Supabase **Session pooler** connection string (IPv4 compatible)
-- `JWT_SECRET` : any long random string
+## Supabase
+Use **Session pooler** connection string (IPv4 compatible), not direct connection.
 
 ## Notes
-- Backend serves the SPA build from `frontend/dist`.
-- All non-`/api/*` routes fallback to `index.html` for SPA routing.
+- Admin endpoints require role: `HR_ADMIN`
+- Worker endpoints require authentication (Bearer token)

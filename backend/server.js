@@ -7,11 +7,24 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 const { pool, initDb } = require('./db');
 const { signToken, authMiddleware, requireRole } = require('./auth');
+const authRequired = authMiddleware(true);
+const authOptional = authMiddleware(false);
 const bcrypt = require('bcryptjs');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 
-app.use(cors());
+app.set('trust proxy', 1);
+
+// Security headers
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// Rate limit
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 300 }));
+
+// CORS
+app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
 app.use(express.json({ limit: '1mb' }));
 
 // --- API ---
