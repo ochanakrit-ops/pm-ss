@@ -3,6 +3,21 @@ import { Link, useNavigate } from 'react-router-dom';
 import { t } from '../i18n.js';
 import { apiFetch } from '../api.js';
 
+function decodeJwt(token) {
+  try {
+    const payload = token.split('.')[1];
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function isWorker(role) {
+  const r = (role || '').toUpperCase();
+  return ['TECH', 'TECHNICIAN', 'TEAM_LEAD', 'LEAD', 'FOREMAN'].includes(r);
+}
+
 export default function LoginPage({ lang, onLoggedIn }) {
   const [companies, setCompanies] = useState([]);
   const [companyCode, setCompanyCode] = useState('SCP');
@@ -37,8 +52,12 @@ export default function LoginPage({ lang, onLoggedIn }) {
         body: JSON.stringify({ companyCode, username, password }),
       });
       localStorage.setItem('pmss_token', data.token);
+
+      const payload = decodeJwt(data.token);
       await onLoggedIn?.();
-      navigate('/');
+
+      if (isWorker(payload?.role)) navigate('/home');
+      else navigate('/');
     } catch (e2) {
       setError(e2.message);
     } finally {
@@ -47,14 +66,14 @@ export default function LoginPage({ lang, onLoggedIn }) {
   }
 
   return (
-    <div style={{ maxWidth: 420, margin: '0 auto', paddingTop: 24 }}>
-      <h2 style={{ margin: 0 }}>{t(lang, 'login')}</h2>
-      <p style={{ color: '#6b7280' }}>Demo HR: <b>hradmin / Pmss@1234</b></p>
+    <div style={{ maxWidth: 420, margin: '0 auto', paddingTop: 18 }}>
+      <h2 style={{ margin: '6px 0 6px' }}>{t(lang, 'login')}</h2>
+      <div className="muted" style={{ marginBottom: 12 }}>Demo HR: <b>hradmin / Pmss@1234</b></div>
 
-      <form onSubmit={submit} style={{ display: 'grid', gap: 12 }}>
+      <form onSubmit={submit} className="grid">
         <label>
           <div style={{ fontSize: 13, marginBottom: 6 }}>{t(lang, 'company')}</div>
-          <select value={companyCode} onChange={(e) => setCompanyCode(e.target.value)} style={{ width: '100%', padding: 10 }}>
+          <select value={companyCode} onChange={(e) => setCompanyCode(e.target.value)}>
             {companies.map((c) => (
               <option key={c.code} value={c.code}>
                 {c.code} - {lang === 'th' ? c.nameTh : c.nameEn}
@@ -65,27 +84,23 @@ export default function LoginPage({ lang, onLoggedIn }) {
 
         <label>
           <div style={{ fontSize: 13, marginBottom: 6 }}>{t(lang, 'username')}</div>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} style={{ width: '100%', padding: 10 }} />
+          <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} />
         </label>
 
         <label>
           <div style={{ fontSize: 13, marginBottom: 6 }}>{t(lang, 'password')}</div>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: 10 }} />
+          <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
 
-        {error ? (
-          <div style={{ background: '#fee2e2', border: '1px solid #fecaca', padding: 10, borderRadius: 8, color: '#991b1b' }}>
-            {error}
-          </div>
-        ) : null}
+        {error ? <div className="alert error">{error}</div> : null}
 
-        <button disabled={loading} style={{ padding: 12, borderRadius: 10, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 700 }}>
+        <button disabled={loading} className="btn primary">
           {loading ? '...' : t(lang, 'login')}
         </button>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
           <Link to="/register">{t(lang, 'register')}</Link>
-          <span style={{ color: '#9ca3af' }}>{t(lang, 'forgot')} (MVP)</span>
+          <span className="muted">{t(lang, 'forgot')} (MVP)</span>
         </div>
       </form>
     </div>

@@ -140,7 +140,152 @@ const port = process.env.PORT || 10000;
 
 initDb()
   .then(() => {
-    app.listen(port, () => {
+    
+
+// =======================
+// v1.2: Worker Requests API
+// =======================
+
+app.post('/api/advance-requests', authRequired, async (req, res) => {
+  try {
+    const { amount, reason } = req.body || {};
+    const amt = Number(amount || 0);
+    if (!amt || amt <= 0) return res.status(400).json({ message: 'amount is required' });
+
+    // Simple limit check (optional)
+    const limit = await pool.query(
+      `SELECT monthly_limit_amount FROM advance_limits WHERE company_code=$1 AND user_id=$2`,
+      [req.user.companyCode, req.user.id]
+    ).catch(() => ({ rows: [] }));
+
+    if (limit.rows?.length && limit.rows[0].monthly_limit_amount != null) {
+      const lim = Number(limit.rows[0].monthly_limit_amount);
+      if (amt > lim) return res.status(400).json({ message: 'amount exceeds limit' });
+    }
+
+    const q = await pool.query(
+      `INSERT INTO advance_requests (company_code, employee_id, amount, reason, status, created_at)
+       VALUES ($1,$2,$3,$4,'PENDING', now())
+       RETURNING id, company_code, amount, reason, status, created_at`,
+      [req.user.companyCode, req.user.id, amt, reason || null]
+    );
+    res.json(q.rows[0]);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.get('/api/my/advance-requests', authRequired, async (req, res) => {
+  try {
+    const q = await pool.query(
+      `SELECT id, company_code, amount, reason, status, created_at, reviewed_at, reviewed_by
+       FROM advance_requests
+       WHERE company_code=$1 AND employee_id=$2
+       ORDER BY created_at DESC
+       LIMIT 50`,
+      [req.user.companyCode, req.user.id]
+    );
+    res.json(q.rows);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.post('/api/leave-requests', authRequired, async (req, res) => {
+  try {
+    const { leaveType, startDate, endDate, reason } = req.body || {};
+    if (!leaveType) return res.status(400).json({ message: 'leaveType is required' });
+    if (!startDate || !endDate) return res.status(400).json({ message: 'startDate/endDate is required' });
+
+    const q = await pool.query(
+      `INSERT INTO leave_requests (company_code, employee_id, leave_type, start_date, end_date, reason, status, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,'PENDING', now())
+       RETURNING id, company_code, leave_type, start_date, end_date, reason, status, created_at`,
+      [req.user.companyCode, req.user.id, leaveType, startDate, endDate, reason || null]
+    );
+    res.json(q.rows[0]);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.get('/api/my/leave-requests', authRequired, async (req, res) => {
+  try {
+    const q = await pool.query(
+      `SELECT id, company_code, leave_type, start_date, end_date, reason, status, created_at, reviewed_at, reviewed_by
+       FROM leave_requests
+       WHERE company_code=$1 AND employee_id=$2
+       ORDER BY created_at DESC
+       LIMIT 50`,
+      [req.user.companyCode, req.user.id]
+    );
+    res.json(q.rows);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// =======================
+// v1.2: HR Review API
+// =======================
+
+app.get('/api/hr/pending', authRequired, requireRole('HR_ADMIN'), async (req, res) => {
+  try {
+    const company = req.user.companyCode;
+    const adv = await pool.query(
+      `SELECT id, company_code, employee_id, amount, reason, status, created_at
+       FROM advance_requests WHERE company_code=$1 AND status='PENDING' ORDER BY created_at ASC LIMIT 200`,
+      [company]
+    );
+    const leave = await pool.query(
+      `SELECT id, company_code, employee_id, leave_type, start_date, end_date, reason, status, created_at
+       FROM leave_requests WHERE company_code=$1 AND status='PENDING' ORDER BY created_at ASC LIMIT 200`,
+      [company]
+    );
+    res.json({ advance: adv.rows, leave: leave.rows });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.post('/api/hr/advance-requests/:id/decision', authRequired, requireRole('HR_ADMIN'), async (req, res) => {
+  try {
+    const { decision } = req.body || {};
+    const id = Number(req.params.id);
+    const status = (decision || '').toUpperCase() === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+    const q = await pool.query(
+      `UPDATE advance_requests
+       SET status=$1, reviewed_at=now(), reviewed_by=$2
+       WHERE id=$3 AND company_code=$4
+       RETURNING id, status, reviewed_at, reviewed_by`,
+      [status, req.user.id, id, req.user.companyCode]
+    );
+    res.json(q.rows[0] || null);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+app.post('/api/hr/leave-requests/:id/decision', authRequired, requireRole('HR_ADMIN'), async (req, res) => {
+  try {
+    const { decision } = req.body || {};
+    const id = Number(req.params.id);
+    const status = (decision || '').toUpperCase() === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+    const q = await pool.query(
+      `UPDATE leave_requests
+       SET status=$1, reviewed_at=now(), reviewed_by=$2
+       WHERE id=$3 AND company_code=$4
+       RETURNING id, status, reviewed_at, reviewed_by`,
+      [status, req.user.id, id, req.user.companyCode]
+    );
+    res.json(q.rows[0] || null);
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+
+app.listen(port, () => {
       console.log(`PM-SS running on port ${port}`);
     });
   })
