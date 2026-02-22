@@ -1,14 +1,22 @@
-
 {
-  "name": "pm-ss-full",
-  "version": "1.4.0",
-  "main": "backend/server.js",
+  "name": "pm-ss-nextjs",
+  "version": "1.5.0",
+  "private": true,
   "scripts": {
-    "start": "node backend/server.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -p $PORT"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "pg": "^8.11.0"
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "next": "14.2.5",
+    "pg": "^8.12.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.23.8"
   }
 }
