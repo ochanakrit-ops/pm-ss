@@ -27,5 +27,6 @@
   },
   "engines": {
   "node": "18.x"
-  }
+  },
+  "start": "node .next/standalone/server.js"
 }
