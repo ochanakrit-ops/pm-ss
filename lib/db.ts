@@ -7,11 +7,12 @@ export function getPool() {
   if (!pool) {
     assertEnv();
     pool = new Pool({
-      connectionString: env.DATABASE_URL,
-      // Supabase pooler works with SSL; keep rejectUnauthorized false for managed cert chain issues.
-      ssl: env.DATABASE_URL.includes('sslmode') ? undefined : { rejectUnauthorized: false },
-      max: 10,
-    });
+                    connectionString: env.DATABASE_URL,
+                    ssl: {
+                      rejectUnauthorized: false,
+                    },
+                    max: 10,
+                  });
   }
   return pool;
 }
