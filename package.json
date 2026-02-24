@@ -1,11 +1,11 @@
 {
   "name": "pm-ss-mobilepro",
-  "version": "1.6.0",
+  "version": "1.6.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "node .next/standalone/server.js",
+    "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
@@ -26,7 +26,6 @@
     "typescript": "^5.4.0"
   },
   "engines": {
-  "node": "18.x"
-  },
-  "start": "node .next/standalone/server.js --hostname 0.0.0.0 --port $PORT"
+    "node": "18.x"
+  }
 }
